@@ -11,16 +11,11 @@ This sample extends the *classic* builder approach by:
 
 ---
 
-## 🔧 Technologies Used
+## 🔧 Technologies & Patterns Used
 - **.NET 9** (Blazor Server)
 - **MudBlazor** (UI components)
-- **FluentValidation** (validation rules)
+- **Result Pattern** (collect errors instead of throwing exceptions)
 - **Mapster** (DTO ↔ domain mapping, with builder integration)
 
 ---
 
-## 🚀 How to Run
-1. Clone the repo:
-   ```bash
-   git clone https://github.com/stevsharp/FluentBuilderDemo-BlazorServer.git
-   cd FluentBuilderDemo-BlazorServer
