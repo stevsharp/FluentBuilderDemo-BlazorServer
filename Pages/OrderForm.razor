@@ -1,0 +1,113 @@
+@page "/"
+@inject ISnackbar Snackbar
+@inject FluentValidation.IValidator<OrderVm> Validator
+
+<MudPaper Class="pa-6" Elevation="1">
+    <MudText Typo="Typo.h5" Class="mb-4">Create Order</MudText>
+
+    <MudForm @ref="_form" Model="@_vm">
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_vm.CustomerId" Label="Customer Id" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudDatePicker T="DateOnly" @bind-Date="_vm.DeliveryDate" Label="Delivery date (optional, not in the past)" />
+            </MudItem>
+        </MudGrid>
+
+        <MudDivider Class="my-4" />
+
+        <MudText Typo="Typo.h6">Lines</MudText>
+
+        <MudTable Items="_vm.Lines" Dense="true">
+            <HeaderContent>
+                <MudTh>SKU</MudTh>
+                <MudTh>Qty</MudTh>
+                <MudTh>Price</MudTh>
+                <MudTh>Currency</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><MudTextField @bind-Value="context.Sku" Placeholder="SKU" /></MudTd>
+                <MudTd><MudNumericField @bind-Value="context.Quantity" Min="1" Immediate="true" /></MudTd>
+                <MudTd><MudNumericField @bind-Value="context.Amount" Min="0" Immediate="true" /></MudTd>
+                <MudTd><MudTextField @bind-Value="context.Currency" Placeholder="EUR" /></MudTd>
+                <MudTd><MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(()=>RemoveLine(context))" /></MudTd>
+            </RowTemplate>
+        </MudTable>
+
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add" OnClick="AddLine" Class="mt-2">Add line</MudButton>
+
+        <MudDivider Class="my-4" />
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Build Order</MudButton>
+    </MudForm>
+
+    @if (_lastBuild is not null)
+    {
+        <MudAlert Severity="@(_lastBuild.IsSuccess ? Severity.Success : Severity.Error)" Class="mt-4">
+            @if (_lastBuild.IsSuccess)
+            {
+                <div>
+                    <b>Order built!</b>
+                    <div>Customer: @_lastBuild.Value!.CustomerId</div>
+                    <div>Total: @_lastBuild.Value!.Total.Amount @_lastBuild.Value!.Total.Currency</div>
+                </div>
+            }
+            else
+            {
+                <div>
+                    <b>Validation errors:</b>
+                    <ul>
+                        @foreach (var e in _lastBuild.Errors)
+                        {
+                            <li>@e</li>
+                        }
+                    </ul>
+                </div>
+            }
+        </MudAlert>
+    }
+</MudPaper>
+
+@code {
+    private MudForm? _form;
+    private OrderVm _vm = new();
+    private Result<Domain.Order>? _lastBuild;
+
+    private void AddLine() => _vm.Lines.Add(new LineVm());
+    private void RemoveLine(LineVm line) => _vm.Lines.Remove(line);
+
+    private async Task Submit()
+    {
+        var validation = await Validator.ValidateAsync(_vm);
+        if (!validation.IsValid)
+        {
+            foreach (var failure in validation.Errors)
+                Snackbar.Add($"{failure.PropertyName}: {failure.ErrorMessage}", Severity.Error);
+
+            _lastBuild = FluentBuilderDemo_BlazorServer.Services.Result.FromErrors<Domain.Order>(
+                validation.Errors.Select(e => $"{e.PropertyName}: {e.ErrorMessage}")
+            );
+            StateHasChanged();
+            return;
+        }
+
+        var dto = new Dtos.OrderDto
+        {
+            CustomerId = _vm.CustomerId,
+            DeliveryDate = _vm.DeliveryDate,
+            Lines = _vm.Lines.Select(l => new Dtos.OrderLineDto { Sku = l.Sku, Quantity = l.Quantity, Amount = l.Amount, Currency = l.Currency }).ToList()
+        };
+
+        var mapper = new Mappers.OrderMapper();
+        var builder = mapper.ToBuilder(dto);
+        _lastBuild = builder.Build();
+
+        if (_lastBuild.IsSuccess)
+            Snackbar.Add($"Order built. Total: {_lastBuild.Value!.Total.Amount} {_lastBuild.Value!.Total.Currency}", Severity.Success);
+        else
+            foreach (var err in _lastBuild.Errors) Snackbar.Add(err, Severity.Error);
+
+        StateHasChanged();
+    }
+}

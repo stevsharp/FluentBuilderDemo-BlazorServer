@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "FluentBuilderDemo-BlazorServer": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:62248;http://localhost:62249"
+    }
+  }
+}
