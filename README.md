@@ -18,6 +18,9 @@ This sample extends the *classic* builder approach by:
 - **Mapster** (DTO ↔ domain mapping, with builder integration)
 
 ---
+Read the full article at :
+
+https://dev.to/stevsharp/beyond-withxyzbuild-taking-the-fluent-builder-pattern-further-in-c-net-9-2k2l
 
 ## Connect with Me
 
